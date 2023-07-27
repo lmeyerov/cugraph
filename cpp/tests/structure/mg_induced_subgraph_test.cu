@@ -25,6 +25,7 @@
 #include <cugraph/graph_functions.hpp>
 #include <cugraph/graph_view.hpp>
 #include <cugraph/utilities/high_res_timer.hpp>
+#include <cugraph/utilities/misc_utils.cuh>
 
 #include <raft/comms/mpi_comms.hpp>
 #include <raft/core/comms.hpp>
@@ -264,6 +265,9 @@ TEST_P(Tests_MGInducedSubgraph_File, CheckInt32Int32)
     override_File_Usecase_with_cmd_line_arguments(GetParam()));
 }
 
+#if 0
+// FIXME:  We should use these tests, gtest-1.11.0 makes it a runtime error
+//         to define and not instantiate these.
 TEST_P(Tests_MGInducedSubgraph_Rmat, CheckInt32Int32)
 {
   run_current_test<int32_t, int32_t, float, false>(
@@ -281,6 +285,7 @@ TEST_P(Tests_MGInducedSubgraph_Rmat, CheckInt64Int64)
   run_current_test<int64_t, int64_t, float, false>(
     override_Rmat_Usecase_with_cmd_line_arguments(GetParam()));
 }
+#endif
 
 INSTANTIATE_TEST_SUITE_P(
   karate_test,

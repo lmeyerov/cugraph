@@ -25,8 +25,11 @@ set(cython_sources
     bfs.pyx
     core_number.pyx
     ecg.pyx
+    edge_betweenness_centrality.pyx
     egonet.pyx
     eigenvector_centrality.pyx
+    generate_rmat_edgelist.pyx
+    generate_rmat_edgelists.pyx
     graph_properties.pyx
     graphs.pyx
     hits.pyx
@@ -36,6 +39,7 @@ set(cython_sources
     sorensen_coefficients.pyx
     overlap_coefficients.pyx
     katz_centrality.pyx
+    leiden.pyx
     louvain.pyx
     node2vec.pyx
     pagerank.pyx

@@ -207,6 +207,8 @@ void per_v_pair_transform_dst_nbr_intersection(
   using property_t = typename thrust::iterator_traits<VertexValueInputIterator>::value_type;
   using result_t   = typename thrust::iterator_traits<VertexPairValueOutputIterator>::value_type;
 
+  CUGRAPH_EXPECTS(!graph_view.has_edge_mask(), "unimplemented.");
+
   if (do_expensive_check) {
     auto num_invalids =
       detail::count_invalid_vertex_pairs(handle, graph_view, vertex_pair_first, vertex_pair_last);
@@ -344,7 +346,7 @@ void per_v_pair_transform_dst_nbr_intersection(
       // partition? This may provide additional performance improvement opportunities???
       auto chunk_vertex_pair_first = thrust::make_transform_iterator(
         chunk_vertex_pair_index_first,
-        detail::indirection_t<VertexPairIterator>{vertex_pair_first});
+        detail::indirection_t<size_t, VertexPairIterator>{vertex_pair_first});
       auto [intersection_offsets, intersection_indices] =
         detail::nbr_intersection(handle,
                                  graph_view,

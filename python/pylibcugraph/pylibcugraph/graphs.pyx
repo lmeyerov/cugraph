@@ -14,35 +14,19 @@
 # Have cython use python 3 syntax
 # cython: language_level = 3
 
-from libc.stdint cimport uintptr_t
-
-from pylibcugraph._cugraph_c.resource_handle cimport (
-    bool_t,
-    cugraph_resource_handle_t,
-    data_type_id_t,
-)
 from pylibcugraph._cugraph_c.error cimport (
     cugraph_error_code_t,
     cugraph_error_t,
 )
 from pylibcugraph._cugraph_c.array cimport (
     cugraph_type_erased_device_array_view_t,
-    cugraph_type_erased_device_array_view_create,
     cugraph_type_erased_device_array_view_free,
 )
 from pylibcugraph._cugraph_c.graph cimport (
-    cugraph_graph_t,
     cugraph_sg_graph_create,
     cugraph_mg_graph_create,
     cugraph_sg_graph_create_from_csr,
-    cugraph_graph_properties_t,
     cugraph_sg_graph_free,
-    cugraph_mg_graph_free,
-)
-from pylibcugraph._cugraph_c.graph cimport (
-    cugraph_graph_t,
-    cugraph_mg_graph_create,
-    cugraph_graph_properties_t,
     cugraph_mg_graph_free,
 )
 from pylibcugraph.resource_handle cimport (
@@ -54,7 +38,6 @@ from pylibcugraph.graph_properties cimport (
 from pylibcugraph.utils cimport (
     assert_success,
     assert_CAI_type,
-    get_c_type_from_numpy_type,
     create_cugraph_type_erased_device_array_view_from_py_obj,
 )
 
@@ -142,7 +125,7 @@ cdef class SGGraph(_GPUGraph):
                   GraphProperties graph_properties,
                   src_or_offset_array,
                   dst_or_index_array,
-                  weight_array,
+                  weight_array=None,
                   store_transposed=False,
                   renumber=False,
                   do_expensive_check=False,
@@ -177,18 +160,22 @@ cdef class SGGraph(_GPUGraph):
             create_cugraph_type_erased_device_array_view_from_py_obj(
                 src_or_offset_array
             )
+        
         cdef cugraph_type_erased_device_array_view_t* dsts_or_indices_view_ptr = \
             create_cugraph_type_erased_device_array_view_from_py_obj(
                 dst_or_index_array
             )
+
         cdef cugraph_type_erased_device_array_view_t* weights_view_ptr = \
             create_cugraph_type_erased_device_array_view_from_py_obj(
                 weight_array
             )
-        cdef cugraph_type_erased_device_array_view_t* edge_id_view_ptr = \
-            create_cugraph_type_erased_device_array_view_from_py_obj(
+        
+
+        self.edge_id_view_ptr = create_cugraph_type_erased_device_array_view_from_py_obj(
                 edge_id_array
             )
+        
         cdef cugraph_type_erased_device_array_view_t* edge_type_view_ptr = \
             create_cugraph_type_erased_device_array_view_from_py_obj(
                 edge_type_array
@@ -201,7 +188,7 @@ cdef class SGGraph(_GPUGraph):
                 srcs_or_offsets_view_ptr,
                 dsts_or_indices_view_ptr,
                 weights_view_ptr,
-                edge_id_view_ptr,
+                self.edge_id_view_ptr,
                 edge_type_view_ptr,
                 store_transposed,
                 renumber,
@@ -219,7 +206,7 @@ cdef class SGGraph(_GPUGraph):
                 srcs_or_offsets_view_ptr,
                 dsts_or_indices_view_ptr,
                 weights_view_ptr,
-                edge_id_view_ptr,
+                self.edge_id_view_ptr,
                 edge_type_view_ptr,
                 store_transposed,
                 renumber,
@@ -238,8 +225,8 @@ cdef class SGGraph(_GPUGraph):
         cugraph_type_erased_device_array_view_free(srcs_or_offsets_view_ptr)
         cugraph_type_erased_device_array_view_free(dsts_or_indices_view_ptr)
         cugraph_type_erased_device_array_view_free(weights_view_ptr)
-        if edge_id_view_ptr is not NULL:
-            cugraph_type_erased_device_array_view_free(edge_id_view_ptr)
+        if self.edge_id_view_ptr is not NULL:
+            cugraph_type_erased_device_array_view_free(self.edge_id_view_ptr)
         if edge_type_view_ptr is not NULL:
             cugraph_type_erased_device_array_view_free(edge_type_view_ptr)
 
@@ -306,7 +293,7 @@ cdef class MGGraph(_GPUGraph):
                   GraphProperties graph_properties,
                   src_array,
                   dst_array,
-                  weight_array,
+                  weight_array=None,
                   store_transposed=False,
                   num_edges=-1,
                   do_expensive_check=False,
@@ -354,18 +341,14 @@ cdef class MGGraph(_GPUGraph):
             create_cugraph_type_erased_device_array_view_from_py_obj(
                 weight_array
             )
-        cdef cugraph_type_erased_device_array_view_t* edge_id_view_ptr = NULL
-        if edge_id_array is not None:
-            edge_id_view_ptr = \
-                create_cugraph_type_erased_device_array_view_from_py_obj(
-                    edge_id_array
-                )
-        cdef cugraph_type_erased_device_array_view_t* edge_type_view_ptr = NULL
-        if edge_type_array is not None:
-            edge_type_view_ptr = \
-                create_cugraph_type_erased_device_array_view_from_py_obj(
-                    edge_type_array
-                )
+        self.edge_id_view_ptr = \
+            create_cugraph_type_erased_device_array_view_from_py_obj(
+                edge_id_array
+            )
+        cdef cugraph_type_erased_device_array_view_t* edge_type_view_ptr = \
+            create_cugraph_type_erased_device_array_view_from_py_obj(
+                edge_type_array
+            )
 
         error_code = cugraph_mg_graph_create(
             resource_handle.c_resource_handle_ptr,
@@ -373,7 +356,7 @@ cdef class MGGraph(_GPUGraph):
             srcs_view_ptr,
             dsts_view_ptr,
             weights_view_ptr,
-            edge_id_view_ptr,
+            self.edge_id_view_ptr,
             edge_type_view_ptr,
             store_transposed,
             num_edges,
@@ -387,8 +370,8 @@ cdef class MGGraph(_GPUGraph):
         cugraph_type_erased_device_array_view_free(srcs_view_ptr)
         cugraph_type_erased_device_array_view_free(dsts_view_ptr)
         cugraph_type_erased_device_array_view_free(weights_view_ptr)
-        if edge_id_view_ptr is not NULL:
-            cugraph_type_erased_device_array_view_free(edge_id_view_ptr)
+        if self.edge_id_view_ptr is not NULL:
+            cugraph_type_erased_device_array_view_free(self.edge_id_view_ptr)
         if edge_type_view_ptr is not NULL:
             cugraph_type_erased_device_array_view_free(edge_type_view_ptr)
 

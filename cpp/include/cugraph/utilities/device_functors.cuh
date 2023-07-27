@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022, NVIDIA CORPORATION.
+ * Copyright (c) 2022-2023, NVIDIA CORPORATION.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -37,13 +37,45 @@ struct typecast_t {
   __device__ output_t operator()(input_t val) const { return static_cast<output_t>(val); }
 };
 
-template <typename Iterator>
+template <typename BoolIterator>
+struct pack_bool_t {
+  BoolIterator bool_first{};
+  size_t num_bools{};
+
+  __device__ uint32_t operator()(size_t i) const
+  {
+    auto first = i * (sizeof(uint32_t) * 8);
+    auto last  = std::min((i + 1) * (sizeof(uint32_t) * 8), num_bools);
+    uint32_t ret{0};
+    for (auto j = first; j < last; ++j) {
+      if (*(bool_first + j)) {
+        auto mask = uint32_t{1} << (j % (sizeof(uint32_t) * 8));
+        ret |= mask;
+      }
+    }
+    return ret;
+  }
+};
+
+template <typename index_t, typename Iterator>
 struct indirection_t {
   Iterator first{};
 
-  __device__ typename thrust::iterator_traits<Iterator>::value_type operator()(size_t i) const
+  __device__ typename thrust::iterator_traits<Iterator>::value_type operator()(index_t i) const
   {
     return *(first + i);
+  }
+};
+
+template <typename index_t, typename Iterator>
+struct indirection_if_idx_valid_t {
+  Iterator first{};
+  index_t invalid_idx{};
+  typename thrust::iterator_traits<Iterator>::value_type invalid_value{};
+
+  __device__ typename thrust::iterator_traits<Iterator>::value_type operator()(index_t i) const
+  {
+    return (i != invalid_idx) ? *(first + i) : invalid_value;
   }
 };
 

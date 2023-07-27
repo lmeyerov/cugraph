@@ -33,7 +33,7 @@
 #include <cugraph/utilities/dataframe_buffer.hpp>
 #include <cugraph/utilities/high_res_timer.hpp>
 
-#include <cuco/detail/hash_functions.cuh>
+#include <cuco/hash_functions.cuh>
 
 #include <raft/comms/mpi_comms.hpp>
 #include <raft/core/comms.hpp>
@@ -108,7 +108,7 @@ class Tests_MGTransformReduceE
   virtual void SetUp() {}
   virtual void TearDown() {}
 
-  // Compare the results of reduce_if_v primitive and thrust reduce on a single GPU
+  // Compare the results of transform_reduce_e primitive
   template <typename vertex_t,
             typename edge_t,
             typename weight_t,
